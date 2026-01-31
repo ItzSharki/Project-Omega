@@ -14,11 +14,26 @@ end
 
 -- Paste your generated license data here
 local LICENSE_DATA = {
-    {_D("\35\14\34\19\30\46\35\19\30\46\35\19\30\46\35\14\34\19\30\46\35\19\30\46\35\19\30\46\35\19\30\46"), 0, 1743465600},
-    {_D("\35\14\34\19\30\47\14\63\30\46\37\35\30\46\35\19\30\46\35\14\34\19\30\46\35\19\30\46\35\19\30\46"), 0, 1743552000},
-    {_D("\35\14\34\19\30\47\14\63\30\47\63\34\14\30\46\35\19\30\46\35\14\34\19\30\46\35\19\30\46\35\19"), 0, 1744156800},
-    {_D("\35\14\34\19\30\47\14\63\30\43\37\15\14\32\37\34\14\30\46\35\14\34\19\30\46\35\19\30\46\35\19"), 0, 9999999999},
-    {_D("\164\006\020\162\157\032\023\007\017\157\161\024\015\172\157\164\006\167\166"), 0, 1769946634}, -- 6DR0-XQEM-3VO8-6D54
+     local LICENSE_DATA = {
+    {_D("\025\022\007\011\157\004\011\004\012\157\001\033\023\022\157\006\030\173\027"), 0, 9999999999}, -- WPEK-FKFH-CYQP-DZ9U (Lifetime)
+}
+```
+
+### **Step 2: Run the Script**
+When you load the script in Roblox, you'll see this authentication screen:
+
+![Authentication GUI appears]
+
+### **Step 3: Enter Your Key**
+Type in the input box:
+```
+WPEK-FKFH-CYQP-DZ9U
+```
+
+### **Step 4: Activate**
+Click "ACTIVATE" and it will say:
+```
+✓ License activated successfully! Valid for: Lifetime
 }
 
 local function IsExpired(timestamp)
