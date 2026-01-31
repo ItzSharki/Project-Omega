@@ -29,7 +29,21 @@ local KEY_SYSTEM = {
             duration = "30 Days",
             type = "Monthly"
         },
-        
+        -- AUTO-GENERATED VALID KEYS WITH EXPIRATION
+-- Generated at: 2026-01-31T10:51:21.520Z
+-- Current Unix Time: 1769856681
+-- Total keys: 1
+
+local ValidKeys = {
+    ["OMEGA-RMKH-91BI-1BZ1"] = {
+        expires = 1769943081,  -- 1 Day
+        duration = "1 Day",
+        type = "Premium"  -- User: N/A
+    },
+}
+
+return ValidKeys
+
         -- Add more keys here
     },
     
