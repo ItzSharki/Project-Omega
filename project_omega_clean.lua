@@ -1,121 +1,161 @@
--- PROJECT OMEGA | omega.dev WITH LICENSE SYSTEM
--- Integrated License Authentication
+-- LICENSE AUTHENTICATION SYSTEM (FIXED - No bit32 required)
+-- DO NOT MODIFY OR REDISTRIBUTE
 
--- ==================== LICENSE SYSTEM ====================
+-- Anti-tamper checksum
 local _CHECKSUM = 0x4F4D4547
 
+-- Simple XOR function without bit32
+local function xor(a, b)
+    local result = 0
+    local bitval = 1
+    while a > 0 or b > 0 do
+        local aa = a % 2
+        local bb = b % 2
+        if aa ~= bb then
+            result = result + bitval
+        end
+        bitval = bitval * 2
+        a = math.floor(a / 2)
+        b = math.floor(b / 2)
+    end
+    return result
+end
+
+-- Decoder function (no bit32)
 local function _D(s)
     local r = {}
     for i = 1, #s do
-        r[i] = string.char(bit32.bxor(s:byte(i), 0x42))
+        r[i] = string.char(xor(s:byte(i), 0x42))
     end
     return table.concat(r)
 end
 
--- Paste your generated license data here
+-- License data storage
+-- Each entry: {encoded_key, status_code, expiry_unix_timestamp}
+-- Status codes: 0=unused, 1=used, 2=expired
 local LICENSE_DATA = {
+    -- Paste your generated keys here
     {_D("\025\022\007\011\157\004\011\004\012\157\001\033\023\022\157\006\030\173\027"), 0, 9999999999}, -- WPEK-FKFH-CYQP-DZ9U (Lifetime)
 }
-```
 
-### **Step 2: Run the Script**
-When you load the script in Roblox, you'll see this authentication screen:
-
-![Authentication GUI appears]
-
-### **Step 3: Enter Your Key**
-Type in the input box:
-```
-WPEK-FKFH-CYQP-DZ9U
-```
-
-### **Step 4: Activate**
-Click "ACTIVATE" and it will say:
-```
-✓ License activated successfully! Valid for: Lifetime
-}
-
-local function IsExpired(timestamp)
-    return os.time() > timestamp
+-- Check if license is expired
+local function IsExpired(expiryTimestamp)
+    return os.time() > expiryTimestamp
 end
 
+-- Validate and consume license key
 local function ValidateLicense(inputKey)
-    local key = inputKey:upper():gsub("%s+", "")
-    if _CHECKSUM ~= 0x4F4D4547 then return false, "Security violation" end
+    local normalizedKey = inputKey:upper():gsub("%s+", "")
     
+    -- Anti-tamper check
+    if _CHECKSUM ~= 0x4F4D4547 then
+        return false, "Security violation detected"
+    end
+    
+    -- Search for key in database
     for i, entry in ipairs(LICENSE_DATA) do
         local storedKey = _D(entry[1])
-        if storedKey == key then
-            local status, expiry = entry[2], entry[3]
-            if status == 1 then return false, "License already used" end
-            if status == 2 or IsExpired(expiry) then
-                LICENSE_DATA[i][2] = 2
-                return false, "License expired"
+        
+        if storedKey == normalizedKey then
+            local status = entry[2]
+            local expiry = entry[3]
+            
+            -- Check if already used
+            if status == 1 then
+                return false, "License key already used"
             end
             
+            -- Check if expired
+            if status == 2 or IsExpired(expiry) then
+                LICENSE_DATA[i][2] = 2
+                return false, "License key expired"
+            end
+            
+            -- Key is valid and unused - mark as used
             LICENSE_DATA[i][2] = 1
+            
+            -- Calculate remaining time
             local timeLeft = expiry - os.time()
-            local timeStr = expiry >= 9999999999 and "Lifetime" or 
-                           (timeLeft > 86400 and math.floor(timeLeft/86400) .. " day(s)" or
-                            math.floor(timeLeft/3600) .. " hour(s)")
-            return true, "Activated! Valid: " .. timeStr, expiry
+            local hoursLeft = math.floor(timeLeft / 3600)
+            local daysLeft = math.floor(hoursLeft / 24)
+            
+            local timeStr
+            if expiry >= 9999999999 then
+                timeStr = "Lifetime"
+            elseif daysLeft > 0 then
+                timeStr = daysLeft .. " day(s)"
+            else
+                timeStr = hoursLeft .. " hour(s)"
+            end
+            
+            return true, "License activated successfully! Valid for: " .. timeStr, expiry
         end
     end
+    
     return false, "Invalid license key"
 end
 
+-- Create authentication GUI
 local function CreateAuthGUI()
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
+    
+    -- Wait for PlayerGui
     local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
     
+    -- Create ScreenGui
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "OmegaAuth"
+    screenGui.Name = "OmegaAuthSystem"
     screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.Parent = PlayerGui
     
+    -- Blur effect
     local blur = Instance.new("BlurEffect")
     blur.Size = 24
     blur.Parent = game:GetService("Lighting")
     
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 450, 0, 280)
-    frame.Position = UDim2.new(0.5, -225, 0.5, -140)
-    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-    frame.BorderSizePixel = 0
-    frame.Parent = screenGui
+    -- Main frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 450, 0, 280)
+    mainFrame.Position = UDim2.new(0.5, -225, 0.5, -140)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
+    corner.Parent = mainFrame
     
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(60, 120, 255)
     stroke.Thickness = 2
     stroke.Transparency = 0.5
-    stroke.Parent = frame
+    stroke.Parent = mainFrame
     
+    -- Title bar
     local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 50)
     titleBar.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
     titleBar.BorderSizePixel = 0
-    titleBar.Parent = frame
+    titleBar.Parent = mainFrame
     
     local titleCorner = Instance.new("UICorner")
     titleCorner.CornerRadius = UDim.new(0, 8)
     titleCorner.Parent = titleBar
     
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -20, 1, 0)
-    title.Position = UDim2.new(0, 10, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "🔒 PROJECT OMEGA - LICENSE"
-    title.TextColor3 = Color3.fromRGB(100, 180, 255)
-    title.TextSize = 16
-    title.Font = Enum.Font.GothamBold
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = titleBar
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -20, 1, 0)
+    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "🔒 PROJECT OMEGA - LICENSE AUTHENTICATION"
+    titleLabel.TextColor3 = Color3.fromRGB(100, 180, 255)
+    titleLabel.TextSize = 16
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = titleBar
     
+    -- Subtitle
     local subtitle = Instance.new("TextLabel")
     subtitle.Size = UDim2.new(1, -40, 0, 30)
     subtitle.Position = UDim2.new(0, 20, 0, 60)
@@ -125,19 +165,26 @@ local function CreateAuthGUI()
     subtitle.TextSize = 13
     subtitle.Font = Enum.Font.Gotham
     subtitle.TextXAlignment = Enum.TextXAlignment.Left
-    subtitle.Parent = frame
+    subtitle.Parent = mainFrame
     
+    -- Input box background
     local inputBg = Instance.new("Frame")
     inputBg.Size = UDim2.new(1, -40, 0, 45)
     inputBg.Position = UDim2.new(0, 20, 0, 100)
     inputBg.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
     inputBg.BorderSizePixel = 0
-    inputBg.Parent = frame
+    inputBg.Parent = mainFrame
     
     local inputCorner = Instance.new("UICorner")
     inputCorner.CornerRadius = UDim.new(0, 6)
     inputCorner.Parent = inputBg
     
+    local inputStroke = Instance.new("UIStroke")
+    inputStroke.Color = Color3.fromRGB(50, 50, 60)
+    inputStroke.Thickness = 1
+    inputStroke.Parent = inputBg
+    
+    -- Input box
     local inputBox = Instance.new("TextBox")
     inputBox.Size = UDim2.new(1, -20, 1, 0)
     inputBox.Position = UDim2.new(0, 10, 0, 0)
@@ -148,73 +195,126 @@ local function CreateAuthGUI()
     inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     inputBox.TextSize = 14
     inputBox.Font = Enum.Font.GothamMedium
+    inputBox.ClearTextOnFocus = false
     inputBox.Parent = inputBg
     
-    local status = Instance.new("TextLabel")
-    status.Size = UDim2.new(1, -40, 0, 40)
-    status.Position = UDim2.new(0, 20, 0, 155)
-    status.BackgroundTransparency = 1
-    status.Text = ""
-    status.TextColor3 = Color3.fromRGB(255, 100, 100)
-    status.TextSize = 12
-    status.Font = Enum.Font.Gotham
-    status.TextWrapped = true
-    status.Parent = frame
+    -- Status label
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(1, -40, 0, 40)
+    statusLabel.Position = UDim2.new(0, 20, 0, 155)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = ""
+    statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    statusLabel.TextSize = 12
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextWrapped = true
+    statusLabel.Parent = mainFrame
     
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -40, 0, 45)
-    btn.Position = UDim2.new(0, 20, 1, -65)
-    btn.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
-    btn.BorderSizePixel = 0
-    btn.Text = "ACTIVATE"
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 14
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = frame
+    -- Activate button
+    local activateBtn = Instance.new("TextButton")
+    activateBtn.Size = UDim2.new(1, -40, 0, 45)
+    activateBtn.Position = UDim2.new(0, 20, 1, -65)
+    activateBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+    activateBtn.BorderSizePixel = 0
+    activateBtn.Text = "ACTIVATE LICENSE"
+    activateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    activateBtn.TextSize = 14
+    activateBtn.Font = Enum.Font.GothamBold
+    activateBtn.Parent = mainFrame
     
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = btn
+    btnCorner.Parent = activateBtn
     
+    -- Button hover effect
+    activateBtn.MouseEnter:Connect(function()
+        activateBtn.BackgroundColor3 = Color3.fromRGB(80, 140, 255)
+    end)
+    
+    activateBtn.MouseLeave:Connect(function()
+        activateBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+    end)
+    
+    -- Authentication logic
     local authenticated = false
     
-    local function auth()
-        if inputBox.Text == "" then
-            status.Text = "⚠️ Enter a key"
-            status.TextColor3 = Color3.fromRGB(255, 200, 100)
+    local function Authenticate()
+        local key = inputBox.Text
+        
+        if key == "" then
+            statusLabel.Text = "⚠️ Please enter a license key"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
             return
         end
         
-        btn.Text = "VALIDATING..."
-        wait(0.3)
+        activateBtn.Text = "VALIDATING..."
+        activateBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 120)
+        task.wait(0.5)
         
-        local ok, msg = ValidateLicense(inputBox.Text)
-        if ok then
-            status.Text = "✓ " .. msg
-            status.TextColor3 = Color3.fromRGB(100, 255, 150)
-            btn.Text = "AUTHENTICATED"
-            btn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
-            wait(1)
+        local success, message, expiry = ValidateLicense(key)
+        
+        if success then
+            statusLabel.Text = "✓ " .. message
+            statusLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+            activateBtn.Text = "AUTHENTICATED"
+            activateBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
+            
+            task.wait(1.5)
+            
+            -- Remove auth GUI
             blur:Destroy()
             screenGui:Destroy()
+            
             authenticated = true
         else
-            status.Text = "✗ " .. msg
-            status.TextColor3 = Color3.fromRGB(255, 100, 100)
-            btn.Text = "ACTIVATE"
+            statusLabel.Text = "✗ " .. message
+            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            activateBtn.Text = "ACTIVATE LICENSE"
+            activateBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
         end
     end
     
-    btn.MouseButton1Click:Connect(auth)
+    -- Button click
+    activateBtn.MouseButton1Click:Connect(Authenticate)
     
-    repeat wait(0.1) until authenticated
+    -- Enter key
+    inputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            Authenticate()
+        end
+    end)
+    
+    -- Wait for authentication
+    repeat task.wait(0.1) until authenticated
     return true
 end
 
--- Require authentication before loading
-if not CreateAuthGUI() then
-    return
+-- Main authentication check
+local function CheckAuthentication()
+    print("===========================================")
+    print("  PROJECT OMEGA - LICENSE SYSTEM")
+    print("  Verifying authentication...")
+    print("===========================================")
+    
+    CreateAuthGUI()
+    
+    print("✓ Authentication successful!")
+    return true
 end
+
+-- Export authentication system
+return {
+    Authenticate = CheckAuthentication,
+    ValidateLicense = ValidateLicense,
+    IsAuthenticated = function()
+        for _, entry in ipairs(LICENSE_DATA) do
+            if entry[2] == 1 and not IsExpired(entry[3]) then
+                return true
+            end
+        end
+        return false
+    end
+}
 
 -- ==================== ORIGINAL SCRIPT BELOW ====================
 -- PROJECT OMEGA | omega.dev
