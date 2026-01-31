@@ -14,7 +14,6 @@ end
 
 -- Paste your generated license data here
 local LICENSE_DATA = {
-     local LICENSE_DATA = {
     {_D("\025\022\007\011\157\004\011\004\012\157\001\033\023\022\157\006\030\173\027"), 0, 9999999999}, -- WPEK-FKFH-CYQP-DZ9U (Lifetime)
 }
 ```
